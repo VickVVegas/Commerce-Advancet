@@ -1,0 +1,38 @@
+<div>
+  <p>{{localize "KULT.NPCAuto.VendorMoney"}}:
+    {{npcCurrency}}
+    |
+    {{localize "KULT.NPCAuto.BuyRate"}}:
+    {{sellRate}}</p>
+  <table class="kult-table">
+    <thead>
+      <tr><th>{{localize "KULT.NPCAuto.Item"}}</th><th>{{localize
+            "KULT.NPCAuto.Type"
+          }}</th><th>{{localize "KULT.NPCAuto.Qty"}}</th><th>{{localize
+            "KULT.NPCAuto.BasePrice"
+          }}</th><th>{{localize "KULT.NPCAuto.Sell"}}</th></tr>
+    </thead>
+    <tbody>
+      {{#each items as |it|}}
+        <tr data-id="{{it.id}}">
+          <td>{{it.name}}</td>
+          <td>{{it.type}}</td>
+          <td>{{it.qty}}</td>
+          <td>{{it.price}}</td>
+          <td>
+            <input
+              name="qty"
+              type="number"
+              min="1"
+              max="{{it.qty}}"
+              value="1"
+            />
+            <button data-action="sell-item">{{localize
+                "KULT.NPCAuto.Sell"
+              }}</button>
+          </td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
+</div>

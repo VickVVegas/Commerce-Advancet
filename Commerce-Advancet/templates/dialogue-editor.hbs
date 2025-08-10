@@ -1,0 +1,54 @@
+<div class="editor-grid">
+  <aside class="nodes">
+    <div class="toolbar">
+      <label>{{localize "KULT.NPCAuto.StartNode"}}:</label>
+      <select name="startNode">
+        {{#each nodes as |n|}}
+          <option value="{{n.id}}" {{#if (eq ../dialogue.startNode n.id)}}selected{{/if}}>{{n.id}}</option>
+        {{/each}}
+      </select>
+      <button data-action="add-node">+ {{localize "KULT.NPCAuto.Node"}}</button>
+      <button data-action="remove-node">- {{localize "KULT.NPCAuto.Node"}}</button>
+    </div>
+    <ul>
+      {{#each nodes as |n|}}
+        <li>
+          <a data-action="select-node" data-id="{{n.id}}" class="{{#if (eq ../current.id n.id)}}active{{/if}}">{{n.id}}</a>
+        </li>
+      {{/each}}
+    </ul>
+  </aside>
+
+  <section class="node-editor">
+    {{#if current}}
+      <h3>{{localize "KULT.NPCAuto.Node"}}: {{current.id}}</h3>
+      <label>{{localize "KULT.NPCAuto.Text"}}</label>
+      <textarea name="nodeText" rows="6">{{current.text}}</textarea>
+      <div class="row">
+        <button data-action="save-node">{{localize "KULT.NPCAuto.SaveText"}}</button>
+      </div>
+
+      <h4>{{localize "KULT.NPCAuto.Options"}}</h4>
+      <table class="options">
+        <thead><tr><th>{{localize "KULT.NPCAuto.Label"}}</th><th>{{localize "KULT.NPCAuto.Next"}}</th><th>{{localize "KULT.NPCAuto.VisibleFor"}}</th><th>{{localize "KULT.NPCAuto.ConditionsJSON"}}</th><th>{{localize "KULT.NPCAuto.Actions"}}</th></tr></thead>
+        <tbody>
+          {{#each current.options as |opt i|}}
+          <tr data-option-row>
+            <td><input type="text" name="optLabel" value="{{opt.label}}"/></td>
+            <td><input type="text" name="optNext" value="{{opt.next}}"/></td>
+            <td><input type="text" name="optVisible" value="{{opt.visibleForUsers}}"/></td>
+            <td><textarea name="optCond" rows="3">{{json opt.conditions}}</textarea></td>
+            <td>
+              <button data-action="save-option" data-index="{{i}}">{{localize "KULT.NPCAuto.Save"}}</button>
+              <button data-action="remove-option" data-index="{{i}}">{{localize "KULT.NPCAuto.Remove"}}</button>
+            </td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+      <button data-action="add-option">+ {{localize "KULT.NPCAuto.Option"}}</button>
+    {{else}}
+      <p class="muted">{{localize "KULT.NPCAuto.SelectOrCreateNode"}}</p>
+    {{/if}}
+  </section>
+</div>
