@@ -1,6 +1,5 @@
 {
     "id": "Commerce-Advancet",
-    "type": "module",
     "title": "Commerce-Advancet",
     "description": "NPC interaction for Kult: conditional dialogues, buy/sell shop, player-specific secrets, visual editor, and compendium integration.",
     "version": "1.0.0",
