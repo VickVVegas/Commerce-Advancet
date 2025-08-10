@@ -1,81 +1,106 @@
-// main.js — Commerce Automate para Foundry VTT v13
-// Autor: VickVVegas
+// scripts/main.js — Ecommerce Advancet (Foundry v13)
 
-import { NPCInteractApp } from "./apps/NPCInteractApp.js";
-import { DialogueEditorApp } from "./apps/DialogueEditorApp.js";
-import { InventoryPickerApp } from "./apps/InventoryPickerApp.js";
-import { DialogueEngine } from "./services/dialogueEngine.js";
-import { ShopService } from "./services/shopService.js";
+export const MODULE_ID = "Commerce-Advancet";
 
-// Ativa debug opcional
-const DEBUG = true;
-function log(...args) {
-  if (DEBUG) console.log("CommerceAutomate |", ...args);
-}
+// (opcional) namespace global p/ facilitar macros
+globalThis.EcommerceAdvancet = { MODULE_ID };
 
-// Hook inicial — antes de carregar cenas e UI
-Hooks.once("init", async function () {
-  log("Inicializando módulo Commerce Automate...");
+Hooks.once("init", () => {
+  console.log(`${MODULE_ID} | init`);
 
-  // Configura namespace global do módulo
-  game.commerceAutomate = {
-    apps: {
-      NPCInteractApp,
-      DialogueEditorApp,
-      InventoryPickerApp,
-    },
-    services: {
-      DialogueEngine,
-      ShopService,
-    },
-    API: {}, // espaço para expor funções públicas
-  };
-
-  // Registra templates Handlebars
-  await loadTemplates([
-    "modules/commerce-automate/templates/npc-app.hbs",
-    "modules/commerce-automate/templates/dialogue-editor.hbs",
-    "modules/commerce-automate/templates/inventory-picker.hbs",
-    "modules/commerce-automate/templates/partials/shop-inventory.hbs",
-    "modules/commerce-automate/templates/partials/shop-sellrow.hbs",
-    "modules/commerce-automate/templates/partials/dialogue-node.hbs",
-  ]);
-
-  log("Templates carregados.");
-});
-
-// Hook pós-carregamento de jogo
-Hooks.once("ready", async function () {
-  log("Módulo Commerce Automate pronto.");
-
-  // Ativa clique em tokens de NPC para abrir interface
-  canvas.tokens.interactiveChildren.forEach((token) => {
-    if (token.actor?.getFlag("commerce-automate", "isVendor")) {
-      token.on("click", () => openVendor(token));
-    }
+  // ===== Settings do módulo (aparecem em Configure Settings > Module Settings) =====
+  game.settings.register(MODULE_ID, "playerCurrencyPath", {
+    name: "Player currency path",
+    hint: "Ex.: system.resources.credit (ajuste ao sistema que você usa)",
+    scope: "world",
+    config: true,
+    type: String,
+    default: "system.resources.credit"
   });
 
-  log("Sistema de clique em NPCs registrado.");
+  game.settings.register(MODULE_ID, "npcCurrencyPath", {
+    name: "NPC currency path",
+    hint: "Ex.: system.resources.credit (usado para troco/compra do vendedor)",
+    scope: "world",
+    config: true,
+    type: String,
+    default: "system.resources.credit"
+  });
+
+  game.settings.register(MODULE_ID, "sellRate", {
+    name: "Sell rate (player → vendor)",
+    hint: "0.5 = 50% do preço base ao vender para o NPC",
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 0.5
+  });
+
+  game.settings.register(MODULE_ID, "markupRate", {
+    name: "Vendor markup",
+    hint: "1.0 = preço base; 1.2 = +20% sobre o preço mostrado",
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 1.0
+  });
+
+  game.settings.register(MODULE_ID, "openOnDoubleClick", {
+    name: "Abrir interação com duplo clique no token",
+    scope: "client",
+    config: true,
+    type: Boolean,
+    default: false
+  });
+
+  game.settings.register(MODULE_ID, "shopCompendium", {
+    name: "Compêndio de Itens (opcional)",
+    hint: "Formato: scope.packId (permite itens por UUID)",
+    scope: "world",
+    config: true,
+    type: String,
+    default: ""
+  });
+
+  // ===== Carrega templates usados pelo módulo =====
+  loadTemplates([
+    `modules/${MODULE_ID}/templates/npc-app.hbs`,
+    `modules/${MODULE_ID}/templates/dialogue-editor.hbs`,
+    `modules/${MODULE_ID}/templates/inventory-picker.hbs`
+  ]);
 });
 
-/**
- * Abre interface de vendedor ou diálogo.
- * @param {Token} token - Token do NPC clicado.
- */
-function openVendor(token) {
-  const isVendor = token.actor?.getFlag("commerce-automate", "isVendor");
-  if (!isVendor) {
-    ui.notifications.warn(game.i18n.localize("KULT.NPCAuto.NotVendor"));
-    return;
-  }
+Hooks.once("ready", () => {
+  console.log(`${MODULE_ID} | ready`);
+});
 
-  const shopData = token.actor.getFlag("commerce-automate", "shopData") || {};
-  new NPCInteractApp(token.actor, shopData).render(true);
-}
+// HUD do token: botão para abrir a UI
+Hooks.on("renderTokenHUD", (hud, html) => {
+  const token = canvas.tokens?.get(hud.object.document.id);
+  const actor = token?.actor;
+  if (!actor || actor.type !== "npc") return;
 
-// Registra comando no console do Foundry para debug
-game.commerceAutomate.API.openVendorByName = function (name) {
-  const token = canvas.tokens.placeables.find((t) => t.name === name);
-  if (token) openVendor(token);
-  else ui.notifications.warn(`NPC '${name}' não encontrado.`);
-};
+  const controls = html.find(".col.right");
+  const btn = $(
+    `<div class="control-icon" data-action="ea-interact" title="Interagir (Ecommerce Advancet)">
+       <i class="fas fa-comments"></i>
+     </div>`
+  );
+  btn.on("click", async () => {
+    // lazy import para evitar import circular
+    const { NPCInteractApp } = await import(`./apps/NPCInteractApp.js`);
+    new NPCInteractApp(actor, actor.getFlag(MODULE_ID, "shopData") ?? {}).render(true);
+  });
+  controls.append(btn);
+});
+
+// Duplo clique opcional
+Hooks.on("dblclickToken", (tokenDoc) => {
+  if (!game.settings.get(MODULE_ID, "openOnDoubleClick")) return;
+  const actor = tokenDoc.actor;
+  if (!actor || actor.type !== "npc") return;
+  (async () => {
+    const { NPCInteractApp } = await import(`./apps/NPCInteractApp.js`);
+    new NPCInteractApp(actor, actor.getFlag(MODULE_ID, "shopData") ?? {}).render(true);
+  })();
+});
